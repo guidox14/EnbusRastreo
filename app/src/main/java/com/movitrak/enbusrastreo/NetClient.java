@@ -73,6 +73,7 @@ public class NetClient {
                 socket.shutdownOutput();
                 socket.close();
             } catch (IOException e) {
+                Log.e("Error", e.getMessage());
             }
         }
     }
@@ -90,6 +91,7 @@ public class NetClient {
             message = in.readLine();
             return message;
         } catch (IOException e) {
+            Log.e("Error", e.getMessage());
             return message;
         }
     }

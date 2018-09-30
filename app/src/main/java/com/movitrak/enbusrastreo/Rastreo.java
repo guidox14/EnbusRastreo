@@ -31,6 +31,8 @@ public class Rastreo extends IntentService implements LocationListener {
     private final String netClientIP = "201.206.34.30"; //"192.168.1.15"; //"201.206.34.30"
     private final int port = 4003;
 
+    private final int minDistance = 3;
+
     public Rastreo() {
         super("Rastreo");
     }
@@ -44,7 +46,8 @@ public class Rastreo extends IntentService implements LocationListener {
         try {
             _LocManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER, 5000, 0, this, Looper.getMainLooper());
-        } catch (SecurityException secEx) {
+        }
+        catch (SecurityException secEx) {
             secEx.printStackTrace();
             String message = secEx.getMessage();
             System.out.println(message);
@@ -59,48 +62,63 @@ public class Rastreo extends IntentService implements LocationListener {
                 Log.d("Punto A", "Punto A sigue siendo nulo");
                 Thread.sleep(500);
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
 
-        while (true) {
-            try {
-                if (_Nc.connectWithServer()) {
+        try {
+            if (_Nc.connectWithServer()) {
+                while (true) {
                     //GPS Request for location every 5 seconds
                     Log.d("Calculando Velocidad", "");
                     puntoB = _MobileLocation;
                     int speed = (int) fSpeed(puntoA, puntoB, (int) interval);
-                    send = false;
-                    if (puntoB.distanceTo(puntoA) > 3) {
-                        send = true;
+                    if (puntoB.distanceTo(puntoA) > minDistance) {
+                        Log.d("Debug", "La distancia es mayor a: " + minDistance);
                         if (speed < 39) {
                             interval = 15;
-                        } else {
+                        }
+                        else {
                             if (speed < 80) {
                                 interval = 10;
-                            } else {
+                            }
+                            else {
                                 interval = 5;
                             }
                         }
-                    }
-                    while (send == true) {
-                        //if (_Nc.chkWithServer())	{
-
-                        _Nc.sendDataWithString(buildStringSocket(puntoB));
+                        String socketString = buildStringSocket(puntoB);
+                        _Nc.sendDataWithString(socketString);
+                        Log.d("Debug", "Enviando socket string: " + socketString);
 
                         //_Nc.disConnectWithServer();
                         //_Nc.connectWithServer();
+                        puntoA = puntoB;
                     }
-                    puntoA = puntoB;
                 }
-                Thread.sleep(interval * 1000);
-            } catch (Exception e) {
-                Log.e("Error", e.getMessage());
-                _Nc.disConnectWithServer();
-                _Nc.connectWithServer();
             }
-
+            else {
+                Thread.sleep(interval * 1000);
+            }
+        } catch (Exception e) {
+            Log.e("Error", e.getMessage());
+            _Nc.disConnectWithServer();
+            _Nc.connectWithServer();
         }
+
+    }
+
+    /*
+     * Recibe un string con la ubicacion, y completa los decimales faltantes con 0s
+     */
+    private String CompleteSpaces(String location, int totalSpaces) {
+        if(location.length() < totalSpaces) {
+            int newTotalSpaces = totalSpaces - location.length();
+            for(int i = 0; i < newTotalSpaces; i++) {
+                location = location + "0";
+            }
+        }
+        return location;
     }
 
     private String buildStringSocket(Location punto) {
@@ -109,11 +127,14 @@ public class Rastreo extends IntentService implements LocationListener {
         double lon = punto.getLongitude();
         if (lat >= 0 && lon >= 0) {
             socketStringBuilder.append("0");
-        } else if (lat >= 0 && lon < 0) {
+        }
+        else if (lat >= 0 && lon < 0) {
             socketStringBuilder.append("1");
-        } else if (lat < 0 && lon >= 0) {
+        }
+        else if (lat < 0 && lon >= 0) {
             socketStringBuilder.append("2");
-        } else if (lat < 0 && lon < 0) {
+        }
+        else if (lat < 0 && lon < 0) {
             socketStringBuilder.append("3");
         }
 
@@ -123,6 +144,12 @@ public class Rastreo extends IntentService implements LocationListener {
         latitude = latitude.replace(".", "");
         if (Math.abs(lat) < 10) {
             socketStringBuilder.append("0");
+            // Llama a CompleteSpaces
+            latitude = CompleteSpaces(latitude, 7);
+        }
+        else {
+            // Llama a CompleteSpaces
+            latitude = CompleteSpaces(latitude, 6);
         }
         socketStringBuilder.append(latitude);
 
@@ -132,8 +159,12 @@ public class Rastreo extends IntentService implements LocationListener {
         longitude = longitude.replace(".", "");
         if (Math.abs(lon) < 10) {
             socketStringBuilder.append("00");
+            // Llama a CompleteSpaces
+            longitude = CompleteSpaces(longitude, 7);
         } else if (Math.abs(lon) < 100) {
             socketStringBuilder.append("0");
+            // Llama a CompleteSpaces
+            longitude = CompleteSpaces(longitude, 8);
         }
         socketStringBuilder.append(longitude);
 
@@ -150,8 +181,7 @@ public class Rastreo extends IntentService implements LocationListener {
 
     //gets and return a Device ID
     private String IDDevice() {
-        String deviceId = Settings.System.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
-        return deviceId;
+        return Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
     }
 
     //return a device speed between two locations in Kph
