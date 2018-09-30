@@ -203,24 +203,11 @@ public class MainActivity extends Activity implements LocationListener, SensorEv
             editor.putString("ruta", Globales.sharedInstance().normal);
             editor.apply();
             Globales.sharedInstance().compartiendo = true;
-            //handler.post(runnable);
-
 
             Intent rastreoIntent = new Intent(this, Rastreo.class);
             startService(rastreoIntent);
 
             this.finish();
-            //txtstatus.setText("Compartiendo ubicación.");
-                                                 /*Intent intent = new Intent(MainActivity.this, inicio.class);
-                                                 intent.putExtra("latitud", latitud);
-                                                 intent.putExtra("longitud", longitud);
-                                                 intent.putExtra("unidad", numero);
-                                                 if (Globales.sharedInstance().status == "NORMAL") {
-                                                     intent.putExtra("ruta", Globales.sharedInstance().normal);
-                                                 } else {
-                                                     intent.putExtra("ruta", Globales.sharedInstance().inversa);
-                                                 }
-                                                 startActivity(intent);*/
         }
     }
 
